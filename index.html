@@ -4,27 +4,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TON Donation</title>
-    
-    <!-- Tailwind CSS for styling -->
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- TON Connect UI and QR Code Generator -->
+
+    <!-- TON Connect UI -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    
+
     <style>
-        /* Custom styles for better look and feel */
+        
+        :root {
+            /* Tweak these to adjust colour palette on brand */
+            --grad-1: #00c6ff;
+            --grad-2: #0072ff;
+            --grad-3: #7928ca;
+            --grad-4: #3700ff;
+            --grad-5: #2555af;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            color: var(--tg-theme-text-color, #212121);
-            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #ffffff);
+            /* Fallback colour while gradients load */
+            background: #0d0d10;
+            position: relative;
+            overflow-x: hidden; /* prevent horizontal scroll caused by animations */
         }
+
+        /* Gradient layer */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background: linear-gradient(130deg, var(--grad-1), var(--grad-2), var(--grad-3), var(--grad-4), var(--grad-5));
+            background-size: 400% 400%;
+            animation: gradientShift 30s ease-in-out infinite;
+        }
+
+        /* Radial bloom highlights */
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            background: radial-gradient(800px at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 70%),
+                        radial-gradient(600px at 80% 70%, rgba(255,255,255,0.08) 0%, transparent 70%);
+            mix-blend-mode: overlay;
+            animation: bloomDrift 40s linear infinite;
+        }
+
+        @keyframes gradientShift {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes bloomDrift {
+            0%   { transform: translate3d(0,0,0); }
+            50%  { transform: translate3d(-5%, -10%, 0); }
+            100% { transform: translate3d(0,0,0); }
+        }
+
+        /* -------------------------------------------------- */
+        /*  GLASS‑EFFECT CARD TO STAND OUT ON THE BACKGROUND  */
+        /* -------------------------------------------------- */
+        #main-card {
+            background: rgba(255,255,255,0.10); /* subtle glass */
+            border: 1px solid rgba(255,255,255,0.25);
+            backdrop-filter: blur(14px) saturate(160%);
+        }
+
+        /* -------------------------------------------------- */
+        /*  ELITE TON CONNECT BUTTON (kept from your version) */
+        /* -------------------------------------------------- */
+        #ton-connect-container {
+            display: flex;
+            justify-content: center;
+            padding: 0 1rem;
+        }
+
         #ton-connect-button .tc-button {
             width: 100%;
-            border-radius: 0.75rem; /* 12px */
+            max-width: 300px;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(45deg, #0077ff, #00eaff, #23d5ab, #0077ff);
+            background-size: 400% 400%;
+            box-shadow: 0 4px 20px rgba(0, 119, 255, 0.35);
+            animation: gradientButton 8s ease infinite;
+            transition: transform 0.35s ease, box-shadow 0.35s ease, background-position 0.6s ease;
         }
+
+        #ton-connect-button .tc-button:hover {
+            transform: translateY(-4px) scale(1.04);
+            box-shadow: 0 10px 30px rgba(0, 119, 255, 0.5);
+            background-position: 100% 50%;
+        }
+
+        #ton-connect-button .tc-button:active {
+            transform: translateY(-1px) scale(1.02);
+            box-shadow: 0 4px 15px rgba(0, 119, 255, 0.4);
+        }
+
+        @keyframes gradientButton {
+            0%   { background-position: 0% 50%; }
+            50%  { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* -------------------------------------------------- */
+        /*  UTILITY: PULSING LOADER (unchanged)               */
+        /* -------------------------------------------------- */
         .pulsing-loader {
             width: 50px;
             height: 50px;
@@ -33,52 +129,42 @@
             animation: pulse 1.5s infinite ease-in-out;
         }
         @keyframes pulse {
-            0% {
-                transform: scale(0.8);
-                opacity: 0.7;
-            }
-            50% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(0.8);
-                opacity: 0.7;
-            }
+            0%   { transform: scale(0.8); opacity: 0.7; }
+            50%  { transform: scale(1);   opacity: 1;   }
+            100% { transform: scale(0.8); opacity: 0.7; }
         }
     </style>
 </head>
-<body class="antialiased">
 
-    <div id="app" class="min-h-screen flex flex-col items-center justify-center p-4 space-y-6">
+<body class="antialiased min-h-screen flex flex-col items-center justify-center p-4">
+    <div id="app" class="w-full flex flex-col items-center justify-center space-y-6">
 
-        <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 space-y-6" id="main-card">
-            
+        <div id="main-card" class="w-full max-w-md rounded-2xl shadow-lg p-6 space-y-6">
             <!-- Header -->
             <div class="text-center">
                 <div class="flex justify-center mb-4">
-                     <svg class="w-16 h-16 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 10v-1m0 4v-1m-4-4H7m10 0h-1M7 12H6m12 0h-1"></path></svg>
+                    <svg class="w-16 h-16 text-white-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 10v-1m0 4v-1m-4-4H7m10 0h-1M7 12H6m12 0h-1"></path></svg>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Support Our Project</h1>
-                <p class="text-gray-600 dark:text-gray-300 mt-2">Your donation helps us keep building. Thank you! ❤️</p>
+                <h1 class="text-2xl font-bold text-white drop-shadow-lg">Support Our Project</h1>
+                <p class="text-gray-200 mt-2">Your donation helps us keep building. Thank you! ❤️</p>
             </div>
 
             <!-- TON Connect Button -->
-            <div id="ton-connect-button"></div>
+            <div id="ton-connect-container">
+                <div id="ton-connect-button"></div>
+            </div>
 
             <!-- Donation Amount Input -->
             <div class="space-y-4">
                 <div>
-                    <label for="amount" class="block text-sm font-medium text-gray-700 dark:text-gray-200">Amount (TON)</label>
+                    <label for="amount" class="block text-sm font-medium text-white">Amount (TON)</label>
                     <div class="mt-1 relative rounded-md shadow-sm">
-                        <input type="number" name="amount" id="amount" class="block w-full pl-4 pr-12 py-3 rounded-xl border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500" placeholder="0.5" step="0.1" min="0.1">
+                        <input type="number" name="amount" id="amount" class="block w-full pl-4 pr-12 py-3 rounded-xl border-gray-300 focus:ring-blue-500 focus:border-blue-500" placeholder="0.5" step="0.1" min="0.1">
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 dark:text-gray-400 sm:text-sm">TON</span>
+                            <span class="text-gray-200 sm:text-sm">TON</span>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Preset Amount Buttons -->
                 <div class="grid grid-cols-3 gap-2">
                     <button onclick="setAmount(1)" class="preset-amount-btn">1 TON</button>
                     <button onclick="setAmount(5)" class="preset-amount-btn">5 TON</button>
@@ -87,19 +173,17 @@
             </div>
 
             <!-- Send Transaction Button -->
-            <button id="send-transaction-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-300">
-                Send Donation
-            </button>
+            <button id="send-transaction-btn" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-xl hover:bg-blue-700 focus:outline-none transition-colors duration-300 disabled:bg-gray-400 disabled:cursor-not-allowed">Send Donation</button>
         </div>
-        
-        <!-- Status/Modal Overlay -->
+
+        <!-- Status Overlay -->
         <div id="status-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div class="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center shadow-xl space-y-4">
                 <div id="loader" class="hidden pulsing-loader mx-auto"></div>
                 <div id="success-icon" class="hidden">
                     <svg class="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
-                 <div id="error-icon" class="hidden">
+                <div id="error-icon" class="hidden">
                     <svg class="w-16 h-16 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <h2 id="status-title" class="text-xl font-bold text-gray-900 dark:text-white">Processing...</h2>
@@ -123,7 +207,7 @@
 
             // --- TON CONNECT UI INITIALIZATION ---
             const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-                manifestUrl: './tonconnect-manifest.json', // Link to your tonconnect-manifest.json
+                manifestUrl: 'https://gist.githubusercontent.com/wrayjaehwa/c7d1d9ccdeed7567360a6f15b76101f1/raw/dfe5be80c3aeed6e1848412aaf18acefee5bc531/tonconnect-manifest.json', // Link to your tonconnect-manifest.json
                 buttonRootId: 'ton-connect-button'
             });
 
@@ -157,7 +241,7 @@
             // Function to set a preset donation amount
             window.setAmount = function(amount) {
                 amountInput.value = amount;
-                updateButtonState();
+                updateButton-state();
             };
 
             // Style preset buttons
